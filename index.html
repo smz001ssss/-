@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>📋 四库合一 · 实时判题考试系统</title>
+  <title>📋 双模考试系统 · 练习/模拟</title>
   <style>
     * {
       box-sizing: border-box;
@@ -32,7 +32,6 @@
       border-radius: 28px;
       padding: 40px 32px;
       text-align: center;
-      box-shadow: inset 0 2px 8px rgba(0,0,0,0.02);
     }
     .auth-box { max-width: 400px; margin: 0 auto; }
     .auth-box h2 { font-weight: 600; color: #0f172a; margin-bottom: 24px; font-size: 28px; }
@@ -52,10 +51,20 @@
       margin-bottom: 24px; flex-wrap: wrap;
     }
     h1 { font-size: 26px; font-weight: 650; color: #0b1e33; display: flex; align-items: center; gap: 8px; }
-    .badge { background: #dbeafe; color: #1e4bd2; padding: 4px 12px; border-radius: 40px; font-size: 14px; font-weight: 500; }
+    .badge { background: #dbeafe; color: #1e4bd2; padding: 4px 12px; border-radius: 40px; font-size: 14px; }
     .logout-btn {
       background: none; border: 1.5px solid #cbd5e1; padding: 8px 20px;
       border-radius: 40px; font-weight: 500; cursor: pointer;
+    }
+    .mode-switch {
+      display: flex; gap: 12px; margin-left: 20px;
+    }
+    .mode-btn {
+      background: white; border: 1.5px solid #cbd5e1; padding: 8px 20px;
+      border-radius: 40px; font-weight: 500; cursor: pointer;
+    }
+    .mode-btn.active {
+      background: #0f172a; color: white; border-color: #0f172a;
     }
     .suite-manager {
       background: #f8fafc; border-radius: 24px; padding: 20px 24px;
@@ -68,7 +77,7 @@
     .suite-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
     .suite-card {
       background: white; border-radius: 20px; padding: 16px 14px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.02); border: 1px solid #e2e8f0;
+      border: 1px solid #e2e8f0;
     }
     .suite-label { font-weight: 600; margin-bottom: 10px; }
     .upload-btn {
@@ -77,7 +86,6 @@
       text-align: center; display: inline-block; width: 100%;
     }
     .upload-btn:hover { border-color: #3b82f6; background: #f0f9ff; }
-    .file-info { font-size: 13px; color: #2563eb; font-weight: 500; margin-top: 6px; }
     .count-badge { background: #e6edfb; padding: 2px 10px; border-radius: 30px; font-size: 13px; }
     .selector-area {
       display: flex; align-items: center; margin-top: 20px; gap: 20px; flex-wrap: wrap;
@@ -86,10 +94,9 @@
     .action-btn {
       background: #0f172a; color: white; border: none; padding: 10px 28px;
       border-radius: 40px; font-weight: 600; font-size: 16px; cursor: pointer;
-      box-shadow: 0 6px 12px rgba(15,23,42,0.1);
     }
-    .action-btn.secondary { background: white; color: #0f172a; border: 1.5px solid #cbd5e1; box-shadow: none; }
-    .warning-msg { color: #b45309; background: #fffbeb; padding: 6px 16px; border-radius: 30px; font-size: 14px; }
+    .action-btn.secondary { background: white; color: #0f172a; border: 1.5px solid #cbd5e1; }
+    .warning-msg { color: #b45309; background: #fffbeb; padding: 6px 16px; border-radius: 30px; }
     .exam-header { display: flex; justify-content: space-between; margin: 20px 0 16px; }
     .score-badge {
       background: #1e293b; color: white; padding: 8px 24px; border-radius: 40px;
@@ -107,6 +114,21 @@
     .option-item {
       display: flex; align-items: center; gap: 12px; padding: 6px 10px;
       border-radius: 14px; background: white; border: 1px solid #eef2f6;
+    }
+    .confirm-btn {
+      margin-top: 12px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 30px;
+      font-weight: 500;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .confirm-btn:disabled {
+      background: #a0aec0;
+      cursor: not-allowed;
     }
     .feedback {
       margin-top: 14px; padding: 10px 14px; border-radius: 16px;
@@ -132,11 +154,11 @@
 </head>
 <body>
 <div class="app-container" id="appContainer">
-  <!-- 口令验证 - 无明文提示 -->
+  <!-- 口令验证 -->
   <div id="authSection" class="auth-overlay">
     <div class="auth-box">
       <h2>🔐 考试准入</h2>
-      <input type="password" id="tokenInput" class="token-input" placeholder="请输入访问口令" autocomplete="off" value="">
+      <input type="password" id="tokenInput" class="token-input" placeholder="请输入访问口令" autocomplete="off">
       <button class="auth-btn" id="authBtn">验证进入</button>
       <div class="hint-token">如需访问，请联系管理员获取口令</div>
     </div>
@@ -145,22 +167,28 @@
   <!-- 主系统 -->
   <div id="mainSection" class="main-panel hidden">
     <div class="top-bar">
-      <h1>📚 四库合一 · 实时判题 <span class="badge">50题/100分</span></h1>
+      <div style="display: flex; align-items: center;">
+        <h1>📚 四库合一 · 双模考试 <span class="badge">50题/100分</span></h1>
+        <div class="mode-switch">
+          <button class="mode-btn active" id="practiceModeBtn">📝 练习模式</button>
+          <button class="mode-btn" id="examModeBtn">📋 模拟模式</button>
+        </div>
+      </div>
       <button class="logout-btn" id="logoutBtn">🚪 退出登录</button>
     </div>
 
     <!-- 题库管理 -->
     <div class="suite-manager">
       <div class="suite-title">
-        <span>🗂️ 四套题库 (内嵌Word操作题，选完即判)</span>
+        <span>🗂️ 四套题库 (内嵌Word操作题)</span>
         <span style="margin-left:auto; font-size:14px;">💡 可上传覆盖</span>
       </div>
       <div class="suite-grid" id="suiteUploadGrid"></div>
       <div class="selector-area">
         <span class="total-info" id="totalQuestionsInfo">📊 总题数: 计算中...</span>
-        <button class="action-btn" id="refreshExamBtn">🔄 重新抽题 (混合随机)</button>
+        <button class="action-btn" id="refreshExamBtn">🔄 重新抽题</button>
         <button class="action-btn secondary" id="resetToEmbeddedBtn">📌 恢复内嵌题库</button>
-        <button class="action-btn secondary" id="clearAllSuitesBtn">🧹 清空所有题库</button>
+        <button class="action-btn secondary" id="clearAllSuitesBtn">🧹 清空题库</button>
         <span id="globalHint" class="warning-msg"></span>
       </div>
     </div>
@@ -172,14 +200,16 @@
         <div class="score-badge" id="scoreDisplay">-- 分</div>
       </div>
       <div id="questionsContainer" class="questions-container">
-        <div style="padding:40px; text-align:center; color:#64748b;">题库已准备就绪，点击「重新抽题」开始考试</div>
+        <div style="padding:40px; text-align:center; color:#64748b;">点击「重新抽题」开始</div>
       </div>
       <div id="paginationContainer" class="pagination"></div>
       <div class="submit-area">
-        <button class="big-submit" id="submitExamBtn">🔒 提交并锁定答案</button>
+        <button class="big-submit" id="submitExamBtn">✅ 提交试卷</button>
         <span class="locked-tip" id="lockedHint"></span>
       </div>
-      <div class="footer-note">✔ 单选/判断每题2分，多选完全正确得2分。选完立即显示对错，实时计分。</div>
+      <div class="footer-note">
+        <span id="modeHint">📝 练习模式：单选/判断选完即判；多选题需点击「确认答案」</span>
+      </div>
     </div>
   </div>
 </div>
@@ -188,26 +218,26 @@
   (function(){
     "use strict";
 
-    // ---------- 🔐 全新口令 (不在界面显示) ----------
-    const ACCESS_TOKEN = "X7k9pQ2mW5nL";   // 请妥善保管此口令
-
+    // ---------- 配置 ----------
+    const ACCESS_TOKEN = "X7k9pQ2mW5nL";
     const QUESTIONS_PER_PAGE = 5;
     const TOTAL_QUESTIONS = 50;
     const POINTS_PER_QUESTION = 2;
 
-    // ---------- 内嵌题库 (四套Word操作题，已转换为标准索引格式) ----------
+    // ---------- 内嵌题库 ----------
     const EMBEDDED_SUITE_1 = [{"type":"judge","question":"Word中不能插入剪贴画。","options":["正确","错误"],"answer":1},{"type":"judge","question":"Word中对插入的艺术字既能设置字体，又能设置字号。","options":["正确","错误"],"answer":0},{"type":"judge","question":"Word2016中被裁剪掉的图片可以恢复。","options":["正确","错误"],"answer":0},{"type":"judge","question":"在Word中，页边距可以通过标尺设置。","options":["正确","错误"],"answer":0},{"type":"judge","question":"在Word中，如果需要对文本格式化，则必须先选择被格式化的文本，然后再对其进行操作。","options":["正确","错误"],"answer":0},{"type":"judge","question":"在Word中，页眉与页脚一经插入不能修改。","options":["正确","错误"],"answer":1},{"type":"judge","question":"在Word2016中，对当前文档的分栏最多可分为三栏。","options":["正确","错误"],"answer":1},{"type":"judge","question":"在Word中，使用Delete命令删除的图片，可以粘贴回来。","options":["正确","错误"],"answer":1},{"type":"judge","question":"在Word中，可以使用在最后一行的行末按下Tab键的方式在表格末添加一行。","options":["正确","错误"],"answer":0},{"type":"judge","question":"在Word中，当执行了误操作后，可以单击“撤销”按钮撤消当前操作，还可以从下拉列表中执行多次撤消或恢复的操作。","options":["正确","错误"],"answer":0},{"type":"single","question":"大四毕业生小刘利用Word2016进行毕业论文的编辑与修改，在第三章数据统计分析中需要设置平方米上标效果M2，可在“开始”选项卡--（ ）组直接单击上标按钮实现。","options":["剪贴板","字体","段落","编辑"],"answer":1},{"type":"single","question":"大四毕业生小刘利用Word2016进行毕业论文的编辑与修改，在第三章数据统计分析中需要将所有的单位“平方米”替换为“M2”，可在“开始”选项卡--（ ）组中找到相应按钮继续操作实现。","options":["剪贴板","字体","段落","编辑"],"answer":3},{"type":"single","question":"大四毕业生小刘利用Word2016进行毕业论文的编辑与修改，在第三章数据统计分析中需要输入希腊字母Ω，可在（ ）选项卡继续操作实现。","options":["引用","插入","开始","视图"],"answer":1},{"type":"single","question":"大四毕业生小刘利用Word2016进行毕业论文的编辑与修改，为排版美观，他现在希望删除导师圈注出来的各个“批注”信息，则应在（ ）选项卡中操作。","options":["开始","插入","视图","审阅"],"answer":3},{"type":"single","question":"大四毕业生小刘利用Word2016进行毕业论文的编辑与修改，他现在希望进行下“字数统计”，以便明确是否符合论文答辩字数要求，则应在（ ）选项卡中操作。","options":["开始","插入","视图","审阅"],"answer":3},{"type":"single","question":"大四毕业生小刘利用Word2016进行毕业论文的编辑与修改，他发现页面视图中的“标尺”不见了，则应在（ ）选项卡中进行“显示标尺”操作。","options":["开始","插入","视图","审阅"],"answer":2}];
     const EMBEDDED_SUITE_2 = [{"type":"single","question":"在使用Word进行文字编辑时，下面叙述中不正确的是（ ）。","options":["使用“文件”菜单中的“打开”命令可以打开一个已存在的word文档","Word可将正在编辑的文档另存为一个纯文本“TXT”文档","Word允许同时打开多个文档","打印预览时，打印机必须是已经开启状态"],"answer":3},{"type":"single","question":"在Word中使图片按比例缩放，最正确的做法是（ ）。","options":["拖动图片边框线","拖动中间的句柄","拖动四角的句柄","拖动边框线的句柄"],"answer":2},{"type":"single","question":"Word2016中能显示页眉和页脚的视图是（ ）。","options":["大纲视图","Web版式视图","阅读视图","页面视图"],"answer":3},{"type":"single","question":"在Word中，删除表格中的某个单元格的正确方法是（ ）。","options":["选中要删除的单元格，按剪切按钮","选中要删除的单元格，使用右键的“删除单元格”","选中要删除的单元格，使用Shift+Delete键","选中要删除的单元格，按Delete键"],"answer":1},{"type":"single","question":"Word2016的页边距不可以通过（ ）设置。","options":["“页面”视图下的标尺","“开始”功能区的“段落”","“文件”菜单下的“打印”选项中的“页面设置”","“布局”功能区的“页边距”"],"answer":1},{"type":"single","question":"在Word2016中若要删除表格中的某单元格所在行，则应选择“删除单元格”对话框中（ ）。","options":["下方单元格上移","删除整行","右侧单元格左移","删除整列"],"answer":1},{"type":"single","question":"在Word2016中要对某一单元格进行拆分，应执行（ ）操作。","options":["“插入”功能区中的“拆分单元格”命令","“设计”功能区中的“拆分单元格”命令","“表格工具-设计”功能区中“拆分单元格”命令","“表格工具-布局”功能区中“拆分单元格”命令"],"answer":3},{"type":"single","question":"Word2016的“文件”选项卡下的“最近所用文件”选项所对应的文件是（ ）。","options":["当前已经打开的Word文件","当前被操作的文件","最近被操作过的word文件","扩展名是docx的所有文件"],"answer":2},{"type":"single","question":"在Word2016中，可以很直观地改变段落的缩进方式，调整左右边界和改变表格的列宽，可以利用（ ）。","options":["字体","标尺","样式","编辑"],"answer":1},{"type":"single","question":"在Word2016的编辑状态下，文档窗口显示出水平标尺，拖动水平标尺上沿的“首行缩进”滑块，则（ ）。","options":["文档中各行的起始位置都重新确定","插入点所在行的起始位置被重新确定","文档中被选择的各段落首行起始位置都重新确定","文档中各段落的首行起始位置都重新确定"],"answer":2},{"type":"single","question":"Word2016文档中，每个段落都有自己的段落标记，段落标记的位置在（ ）。","options":["段落的首部","段落的中间位置","段落的结尾处","段落中，但用户找不到的位置"],"answer":2},{"type":"single","question":"在Word2016的编辑状态，打开文档“复习.docx”，修改后另存为“复习资料.docx”，则文件“复习.docx”（ ）。","options":["被文档“复习资料.docx”覆盖","未修改被关闭","被修改未关闭","被修改并关闭"],"answer":1},{"type":"single","question":"在Word2016窗口中，如果双击某行文字左端的空白处（此时鼠标指针为空心头），可选择（ ）。","options":["一行","一段","多行","一页"],"answer":1},{"type":"single","question":"在Word2016的编辑状态下，单击“开始”选项卡下“剪贴板”组中“粘贴”按钮后，（ ）。","options":["被选择的内容移到剪贴板处","被选择的内容移到插入点处","剪贴板中的内容复制到插入点处","剪贴板中的内容移动到插入点处"],"answer":2},{"type":"single","question":"在Word2016中，以下关于替换的说法正确的是（ ）。","options":["不能用“黄色”替换“yellow”，因为中英文不能互相替换","不能用“新年快乐”替换“新年”，因为字符数不同","能用“新年”替换“新年快乐”，不用考虑字符数","不可以将含空格的字符串替换为无空格的字符串"],"answer":2},{"type":"single","question":"在Word2016文档中插入数学公式时，需要在（ ）选项卡中选择（ ）命令按钮。","options":["符号","形状","图片","公式"],"answer":3},{"type":"single","question":"在Word2016中要输入“§”，则需要使用的选项卡是（ ）。","options":["开始","插入","引用","视图"],"answer":1},{"type":"single","question":"在Word2016的“字体”对话框中，不可设定文字的（ ）。","options":["上标","删除线","字号","行距"],"answer":3},{"type":"single","question":"在Word2016中“字体”对话框中，对于选定的文字不能设置（ ）。","options":["添加下划线","加删除线","左缩进和右缩进","颜色"],"answer":2},{"type":"single","question":"在编辑Word文档时，需要将行距设置为20磅，要在“行距”列表框中的（ ）中设置。","options":["单倍行距","1.5倍行距","固定值","多倍行距"],"answer":2},{"type":"single","question":"在Word2016中设置首字下沉先打开（ ）选项卡，然后在“文本”组中操作。","options":["开始","插入","页面布局","视图"],"answer":1}];
     const EMBEDDED_SUITE_3 = [{"type":"single","question":"在Word2016中，选择某段文本，双击格式刷去应用格式时，格式刷可以使用的次数是（ ）。","options":["1次","2次","有限次","无限次"],"answer":3},{"type":"single","question":"在Word2016中，打印页数设置为1-3,7,9-11表示打印的页码是（ ）。","options":["第1、3、7、9、10、11页","第1、3、7、9、11页","第1、2、3、7、9、10、11页","以上说法都不对"],"answer":2},{"type":"single","question":"在Word编辑状态下，若光标位于表格外右侧的行尾处，按Enter（回车）键，结果为（ ）。","options":["在本单元格内换行，表格行数不变","光标移到下一行，表格行数不变","光标移到下一行","插入一行，表格行数改变"],"answer":3},{"type":"multiple","question":"在Word2016中统计文档的字符数的方法有（ ）。","options":["“审阅”标签下“校对”功能区的“字数统计”按钮","快捷键Ctrl+Shift+H","快捷键Ctrl+Shift+G","“审阅”标签下“修订”功能区的“字数统计”"],"answer":[0,2]},{"type":"multiple","question":"以下关于Word2016的“打印预览”窗口，说法正确的有（ ）。","options":["可以插入表格","是一种对文档进行打印前的预览窗口","可以设置页边距","不显示菜单栏，不能打开菜单"],"answer":[1,2]},{"type":"multiple","question":"在Word2016中，以下属于段落格式的有（ ）。","options":["字间距","首行缩进","段前、段后距","行距"],"answer":[1,2,3]},{"type":"multiple","question":"可在Word2016文档中插入的对象有（ ）。","options":["Excel工作表","幻灯片","声音","图像文档"],"answer":[0,1,2,3]},{"type":"multiple","question":"Word2016中可以设置的水印效果有（ ）。","options":["文本框","表格","图片","文字"],"answer":[2,3]},{"type":"multiple","question":"在Word2016中，以下说法中正确的是（ ）。","options":["导航窗格能够浏览文档中的关键文字和词","导航窗格能够浏览文档中的脚注、尾注、题注等","导航窗格能够浏览文档中的标题","导航窗格能够浏览文档中的各个页面的缩略图"],"answer":[0,1,2,3]},{"type":"multiple","question":"在Word2016中，以下说法中正确的是（ ）。","options":["段落中字符之间的间距可以通过“段落”对话框调整","段落是文本中由段落结束标志分隔而成的部分","一个段落必须由多行组成","同一段落中的文本字体格式完全相同"],"answer":[1]},{"type":"multiple","question":"在Word2016中，进行查找与替换操作，以下说法中正确的是（ ）。","options":["查找与替换内容不能是特殊格式文字","查找与替换不能对段落格式进行操作","能查找并替换段落标记、分页符","查找与替换可以对指定格式进行操作"],"answer":[2,3]},{"type":"multiple","question":"在Word2016中，以下说法中正确的是（ ）。","options":["打印结束前，不能关闭“打印”文档的窗口","打印过程中可以随时切换到其他窗口去做任何事情","需要等文档打印完毕，才能切换到其他窗口进行操作","打印过程中可以切换到其他窗口操作，但如果打印未结束，不可以按“打印”按钮"],"answer":[1]},{"type":"multiple","question":"Word2016中段落的对齐效果包括（ ）。","options":["左对齐","右对齐","居中对齐","分散对齐"],"answer":[0,1,2,3]},{"type":"multiple","question":"在Word2016中，视图方式有（ ）。","options":["阅读视图","页面视图","大纲视图","Web版式视图"],"answer":[0,1,2]},{"type":"multiple","question":"在Word2016中，“开始”功能区包含的功能有（ ）。","options":["字体设置","样式设置","段落对齐方式设置","项目符号设置"],"answer":[0,1,2,3]},{"type":"multiple","question":"在Word2016中的“打印”命令可以打印（ ）。","options":["整个文档","当前页","选定内容","指定范围"],"answer":[0,1,2,3]},{"type":"multiple","question":"在Word2016中，剪切选中的文本的方法包括（ ）。","options":["Ctrl+V","“开始/剪切”命令","Ctrl+X","对象上右击-“剪切”命令"],"answer":[1,2,3]},{"type":"multiple","question":"在Word2016中，关于全选的说法正确的是（ ）。","options":["Ctrl+A","Ctrl+B","开始-->编辑-->选择-->全选","插入-->全选"],"answer":[0,2]},{"type":"multiple","question":"在Word2016的打印预览状态下可以（ ）。","options":["打印文件","选择打印机","打印份数","根据指定的纸张进行缩放"],"answer":[0,1,2,3]},{"type":"multiple","question":"在Word2016中，当Word文档中有多个图形时，可以选择的对齐方式有（ ）。","options":["左对齐","顶端对齐","底端对齐","垂直居中"],"answer":[0,1,2,3]}];
     const EMBEDDED_SUITE_4 = [];
 
-    // ---------- 状态 ----------
+    // 状态
     let isAuth = false;
     let suites = [[], [], [], []];
     let currentExamQuestions = [];
     let userAnswers = [];
     let isSubmitted = false;
     let currentPage = 1;
+    let practiceMode = true;
 
     // DOM
     const authSection = document.getElementById('authSection');
@@ -215,6 +245,8 @@
     const tokenInput = document.getElementById('tokenInput');
     const authBtn = document.getElementById('authBtn');
     const logoutBtn = document.getElementById('logoutBtn');
+    const practiceModeBtn = document.getElementById('practiceModeBtn');
+    const examModeBtn = document.getElementById('examModeBtn');
     const suiteUploadGrid = document.getElementById('suiteUploadGrid');
     const refreshExamBtn = document.getElementById('refreshExamBtn');
     const resetToEmbeddedBtn = document.getElementById('resetToEmbeddedBtn');
@@ -227,8 +259,9 @@
     const globalHint = document.getElementById('globalHint');
     const totalQuestionsInfo = document.getElementById('totalQuestionsInfo');
     const lockedHint = document.getElementById('lockedHint');
+    const modeHint = document.getElementById('modeHint');
 
-    // ---------- 初始化题库 ----------
+    // 初始化
     function loadInitialSuites() {
       for (let i=0; i<4; i++) {
         const stored = localStorage.getItem(`exam_suite_${i}`);
@@ -252,11 +285,8 @@
       suites[2] = EMBEDDED_SUITE_3.slice();
       suites[3] = EMBEDDED_SUITE_4.slice();
       for (let i=0; i<4; i++) localStorage.setItem(`exam_suite_${i}`, JSON.stringify(suites[i]));
-      renderSuiteUploaders();
-      updateTotalInfo();
-      currentExamQuestions = []; userAnswers = []; isSubmitted = false;
-      renderQuestions();
-      updateScoreAndHint();
+      renderSuiteUploaders(); updateTotalInfo();
+      resetExamState();
     }
 
     function getTotalQuestionCount() { return suites.reduce((s,a)=>s+a.length,0); }
@@ -299,7 +329,16 @@
       }
     }
 
-    // 抽题
+    function resetExamState() {
+      currentExamQuestions = [];
+      userAnswers = [];
+      isSubmitted = false;
+      currentPage = 1;
+      scoreDisplay.textContent = '-- 分';
+      lockedHint.textContent = '';
+      renderQuestions();
+    }
+
     function drawRandomQuestions() {
       const all = suites.flat();
       if (all.length < TOTAL_QUESTIONS) { alert(`总题库仅 ${all.length} 题`); return false; }
@@ -337,13 +376,44 @@
       } else return `${String.fromCharCode(65+ans)}. ${opts[ans]}`;
     }
 
-    function updateScoreAndHint() {
-      if (!currentExamQuestions.length) return;
+    function computeTotalScore() {
+      if (!currentExamQuestions.length) return 0;
       let total = 0;
       for (let i=0; i<currentExamQuestions.length; i++) {
         if (isAnswerCorrect(currentExamQuestions[i], userAnswers[i])) total += POINTS_PER_QUESTION;
       }
-      scoreDisplay.textContent = `${total} 分`;
+      return total;
+    }
+
+    function updateScoreDisplay() {
+      scoreDisplay.textContent = `${computeTotalScore()} 分`;
+    }
+
+    function isQuestionLocked(qIndex) {
+      if (practiceMode) {
+        const ans = userAnswers[qIndex];
+        if (currentExamQuestions[qIndex].type === 'multiple') {
+          return Array.isArray(ans) && ans.length > 0;
+        } else {
+          return ans !== null;
+        }
+      } else {
+        return isSubmitted;
+      }
+    }
+
+    // 多选题确认处理
+    function confirmMultipleAnswer(qIndex) {
+      if (!practiceMode || isSubmitted) return;
+      const ans = userAnswers[qIndex];
+      if (!Array.isArray(ans) || ans.length === 0) {
+        alert('请至少选择一个选项');
+        return;
+      }
+      // 锁定已通过userAnswers存在而生效，只需重绘
+      renderQuestions();
+      updateScoreDisplay();
+      window.scrollTo({top:0, behavior:'smooth'});
     }
 
     function renderQuestions() {
@@ -363,26 +433,28 @@
         const type = q.type;
         const userAns = userAnswers[qIndex];
         const opts = q.options || [];
-        
+        const locked = isQuestionLocked(qIndex);
+
         let optionsHtml = '';
         if (type === 'single' || type === 'judge') {
           optionsHtml = opts.map((opt, optIdx) => {
             const checked = (userAns !== null && userAns === optIdx) ? 'checked' : '';
-            const disabled = isSubmitted ? 'disabled' : '';
+            const disabled = locked ? 'disabled' : '';
             return `<div class="option-item"><input type="radio" name="q${qIndex}" value="${optIdx}" ${checked} ${disabled} data-qindex="${qIndex}"> <span>${String.fromCharCode(65+optIdx)}. ${opt}</span></div>`;
           }).join('');
         } else {
           const selectedArr = Array.isArray(userAns) ? userAns : [];
           optionsHtml = opts.map((opt, optIdx) => {
             const checked = selectedArr.includes(optIdx) ? 'checked' : '';
-            const disabled = isSubmitted ? 'disabled' : '';
+            const disabled = locked ? 'disabled' : '';
             return `<div class="option-item"><input type="checkbox" name="q${qIndex}" value="${optIdx}" ${checked} ${disabled} data-qindex="${qIndex}"> <span>${String.fromCharCode(65+optIdx)}. ${opt}</span></div>`;
           }).join('');
         }
 
-        const hasAnswer = (type==='multiple') ? (Array.isArray(userAns) && userAns.length>0) : (userAns !== null);
+        // 反馈显示
         let feedbackHtml = '';
-        if (isSubmitted || hasAnswer) {
+        const showFeedback = (practiceMode && locked) || (!practiceMode && isSubmitted);
+        if (showFeedback) {
           const correct = isAnswerCorrect(q, userAns);
           const correctStr = getCorrectAnswerStr(q);
           feedbackHtml = correct 
@@ -390,35 +462,67 @@
             : `<div class="feedback wrong-feedback">❌ 错误。正确答案: ${correctStr}</div>`;
         }
 
+        // 练习模式多选题确认按钮
+        let confirmBtnHtml = '';
+        if (practiceMode && type === 'multiple' && !locked) {
+          confirmBtnHtml = `<button class="confirm-btn" data-confirm-qindex="${qIndex}">✅ 确认答案</button>`;
+        }
+
         html += `<div class="question-card">
           <div class="q-title"><span class="q-num">第 ${qIndex+1} 题</span><span>${type==='single'?'【单选】':(type==='judge'?'【判断】':'【多选】')}</span></div>
           <div class="q-text">${q.question}</div>
           <div class="options">${optionsHtml}</div>
+          ${confirmBtnHtml}
           ${feedbackHtml}
         </div>`;
       }
       questionsContainer.innerHTML = html;
 
-      if (!isSubmitted) {
-        document.querySelectorAll('input[data-qindex]').forEach(inp => {
-          inp.addEventListener('change', function() {
-            const qIdx = parseInt(this.dataset.qindex);
-            const qType = currentExamQuestions[qIdx].type;
-            if (qType === 'single' || qType === 'judge') {
-              const radio = document.querySelector(`input[name="q${qIdx}"]:checked`);
-              userAnswers[qIdx] = radio ? parseInt(radio.value) : null;
-            } else {
-              const checks = document.querySelectorAll(`input[name="q${qIdx}"]:checked`);
-              userAnswers[qIdx] = Array.from(checks).map(cb => parseInt(cb.value));
-            }
-            updateScoreAndHint();
+      // 绑定事件
+      // 单选/判断 change：练习模式立即锁定，模拟模式只存储
+      document.querySelectorAll('input[type=radio][data-qindex]').forEach(inp => {
+        inp.addEventListener('change', function() {
+          const qIdx = parseInt(this.dataset.qindex);
+          if (isQuestionLocked(qIdx)) return;
+          const radio = document.querySelector(`input[name="q${qIdx}"]:checked`);
+          userAnswers[qIdx] = radio ? parseInt(radio.value) : null;
+          if (practiceMode) {
+            // 练习模式单选/判断立即锁定并重绘
             renderQuestions();
-            window.scrollTo({top:0, behavior:'smooth'});
-          });
+            updateScoreDisplay();
+          } else {
+            // 模拟模式仅存储，不重绘（但需要更新视图？可以局部更新或直接重绘）
+            renderQuestions();
+          }
         });
-      }
+      });
+
+      // 多选题 checkbox change：只更新数组，不锁定
+      document.querySelectorAll('input[type=checkbox][data-qindex]').forEach(inp => {
+        inp.addEventListener('change', function() {
+          const qIdx = parseInt(this.dataset.qindex);
+          if (isQuestionLocked(qIdx)) return;
+          const checks = document.querySelectorAll(`input[name="q${qIdx}"]:checked`);
+          userAnswers[qIdx] = Array.from(checks).map(cb => parseInt(cb.value));
+          if (!practiceMode) {
+            // 模拟模式重绘保持界面同步（但不锁定）
+            renderQuestions();
+          }
+          // 练习模式：不重绘，等待确认按钮
+        });
+      });
+
+      // 确认按钮事件
+      document.querySelectorAll('.confirm-btn[data-confirm-qindex]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const qIdx = parseInt(btn.dataset.confirmQindex);
+          confirmMultipleAnswer(qIdx);
+        });
+      });
 
       renderPagination(totalPages);
+      updateScoreDisplay();
     }
 
     function renderPagination(totalPages) {
@@ -439,17 +543,42 @@
 
     function handleSubmit() {
       if (!currentExamQuestions.length) { alert('没有试卷'); return; }
+      if (practiceMode) {
+        alert('练习模式题目已自动锁定，无需提交。如需模拟考试请切换到“模拟模式”。');
+        return;
+      }
+      if (isSubmitted) { alert('已经提交过了'); return; }
       isSubmitted = true;
-      lockedHint.textContent = '🔒 答案已锁定';
+      lockedHint.textContent = '🔒 试卷已提交';
       renderQuestions();
-      updateScoreAndHint();
+      updateScoreDisplay();
     }
 
     function refreshExam() {
       if (getTotalQuestionCount() < TOTAL_QUESTIONS) { alert('总题库不足50题'); return; }
       if (drawRandomQuestions()) {
         renderQuestions();
-        updateScoreAndHint();
+        updateScoreDisplay();
+        lockedHint.textContent = '';
+        isSubmitted = false;
+      }
+    }
+
+    function setPracticeMode(enabled) {
+      if (practiceMode === enabled) return;
+      if (currentExamQuestions.length > 0) {
+        if (!confirm('切换模式将重置当前答题进度，确定吗？')) return;
+      }
+      practiceMode = enabled;
+      practiceModeBtn.classList.toggle('active', practiceMode);
+      examModeBtn.classList.toggle('active', !practiceMode);
+      modeHint.innerHTML = practiceMode ? '📝 练习模式：单选/判断选完即判；多选题需点击「确认答案」' : '📋 模拟模式：自由作答，统一提交';
+      if (currentExamQuestions.length) {
+        userAnswers = new Array(TOTAL_QUESTIONS).fill(null);
+        isSubmitted = false;
+        lockedHint.textContent = '';
+        renderQuestions();
+        updateScoreDisplay();
       }
     }
 
@@ -460,10 +589,8 @@
         mainSection.classList.remove('hidden');
         loadInitialSuites();
         if (getTotalQuestionCount() >= TOTAL_QUESTIONS) refreshExam();
-        else questionsContainer.innerHTML = '<div style="padding:40px;">内嵌题库已加载，但总题数不足50，请补充</div>';
-      } else {
-        alert('口令错误，请重试');
-      }
+        else questionsContainer.innerHTML = '<div style="padding:40px;">内嵌题库已加载，但总题数不足50</div>';
+      } else alert('口令错误');
     }
 
     function logout() {
@@ -477,13 +604,14 @@
       if (!confirm('清空所有题库？')) return;
       for (let i=0; i<4; i++) { suites[i] = []; localStorage.removeItem(`exam_suite_${i}`); }
       renderSuiteUploaders(); updateTotalInfo();
-      currentExamQuestions = []; renderQuestions(); scoreDisplay.textContent = '-- 分';
+      resetExamState();
     }
 
-    // 事件绑定
     authBtn.addEventListener('click', verifyToken);
     tokenInput.addEventListener('keypress', e => { if(e.key==='Enter') verifyToken(); });
     logoutBtn.addEventListener('click', logout);
+    practiceModeBtn.addEventListener('click', ()=>setPracticeMode(true));
+    examModeBtn.addEventListener('click', ()=>setPracticeMode(false));
     refreshExamBtn.addEventListener('click', refreshExam);
     resetToEmbeddedBtn.addEventListener('click', resetToEmbedded);
     clearAllSuitesBtn.addEventListener('click', clearAllSuites);
